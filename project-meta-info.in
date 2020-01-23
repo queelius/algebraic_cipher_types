@@ -1,0 +1,11 @@
+# project-meta-info.info
+
+
+# The version number of this project.
+set( project_version 1 )
+
+# The description of this project.
+set( project_description "Basic Boolean algebra" )
+
+# The homepage of this project.
+set( project_homepage "http://www.github.com/queelius/test" )

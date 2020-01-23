@@ -1,0 +1,5 @@
+/home/spinoza/Documents/repos/code/algebraic_cipher_types/build/CMakeFiles/edit_cache.dir
+/home/spinoza/Documents/repos/code/algebraic_cipher_types/build/CMakeFiles/NotOp.dir
+/home/spinoza/Documents/repos/code/algebraic_cipher_types/build/CMakeFiles/AndOp.dir
+/home/spinoza/Documents/repos/code/algebraic_cipher_types/build/CMakeFiles/rebuild_cache.dir
+/home/spinoza/Documents/repos/code/algebraic_cipher_types/build/CMakeFiles/OrOp.dir

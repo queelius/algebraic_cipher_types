@@ -1,0 +1,19 @@
+[
+{
+  "directory": "/home/spinoza/Documents/repos/code/algebraic_cipher_types/build",
+  "command": "/usr/bin/g++-9    -g   -o CMakeFiles/NotOp.dir/src/not.o -c /home/spinoza/Documents/repos/code/algebraic_cipher_types/src/not.cpp",
+  "file": "/home/spinoza/Documents/repos/code/algebraic_cipher_types/src/not.cpp"
+},
+
+{
+  "directory": "/home/spinoza/Documents/repos/code/algebraic_cipher_types/build",
+  "command": "/usr/bin/g++-9    -g   -o CMakeFiles/AndOp.dir/src/and.o -c /home/spinoza/Documents/repos/code/algebraic_cipher_types/src/and.cpp",
+  "file": "/home/spinoza/Documents/repos/code/algebraic_cipher_types/src/and.cpp"
+},
+
+{
+  "directory": "/home/spinoza/Documents/repos/code/algebraic_cipher_types/build",
+  "command": "/usr/bin/g++-9    -g   -o CMakeFiles/OrOp.dir/src/or.o -c /home/spinoza/Documents/repos/code/algebraic_cipher_types/src/or.cpp",
+  "file": "/home/spinoza/Documents/repos/code/algebraic_cipher_types/src/or.cpp"
+}
+]
