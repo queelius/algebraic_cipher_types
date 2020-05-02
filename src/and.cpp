@@ -2,6 +2,7 @@
 #include <string>
 #include <boost/program_options.hpp>
 #include <vector>
+#include <string_view>
 
 using std::cout;
 using std::string;

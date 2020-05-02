@@ -1,25 +1,14 @@
 /**
- * Store a string into a memory address.
+ * A simple key-value (string -> string) store.
  * 
- * Options: size of memory. if n, then 0,1,...,n-1 addresses.
- * 
- * stores into a file in the same folder.
- * 
- * folder is just:
+ * Key-value file store has the following simple file format:
  * ---
- * n (string memory cells)
- * str1
- * str2
- * str3
- * ...
- * strn
- * 
- * 
- * if a cell is empty, what's there is undefined.
- * 
- * comparison, equality, etc depend on what the memory cell represents.
- * if it's a bool, then "load 0" outputs what's there,
- * 
+ * key1     value1
+ * key2     value2
+ *      .
+ *      .
+ *      .
+ * keyn     valuen
  */
 
 #include <iostream>
@@ -38,28 +27,25 @@ using std::string_view;
 using std::vector;
 using std::cerr;
 
-string const True     = "1";
-string const False    = "0";
-
-void output_info(string const & prog)
+void output_info(string_view prog)
 {
-    cout    << "Byte store\n"
-            << "----------\n"
-            << prog << "(m, x, n) stores x in memory file m at\n"
-            << "address n.\n"
+    cout    << "Key-value store\n"
+            << "---------------\n"
+            << "\"" << prog << " <key-value-file> <key> <value>\" stores <value> at <key> in <key-value-file>.\n"
             << "\n"
-            << "The memory store can grow arbitrarily large.\n"
+            << prog << " accepts command-line arguments or standard input, e.g.,\n"
+            << "all of the following are equivalent:\n"
+            << "    echo key value | " << prog << " file\n"
+            << "    echo value | " << prog << " file key\n"
+            << "    " << prog << " file key value.\n"
             << "\n"
-            << prog << " accepts command-line arguments or standard input,\n"
-            << "e.g., \"cat data | " << prog << "\" -m <memory_file> -n <address>\"\n"
-            << "is equivalent to\n";
+            << "Place arguments in quotes if they include whitespace, e.g.,\n"
+            << "    " << prog << " key \"value with spaces\" file.\n";
 }
 
 
 /**
- * say m is a file
- * 
- * load m >
+ * Document usage here?
  */
 
 int main(
@@ -99,16 +85,6 @@ int main(
         return EXIT_SUCCESS;
     }
     
-    if (vm.count("reduce"))
-    {
-        max = vm["reduce"].as<int>();
-        if (max < 1)
-        {
-            cerr << "Error: " << argv[0] << " must reduce one or more inputs\n";
-            return EXIT_FAILURE;
-        }
-    }
-
     int fd;
     fcntl(fd, F_SETFL, O_NONBLOCK);
 
