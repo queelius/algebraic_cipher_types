@@ -2,6 +2,56 @@
 
 #include "log_rate.hpp"
 
+
+
+/*****
+ * 
+ * Anything that models a cipher type should have a hash(x)
+ * function so that they may be composed.
+ * 
+ * For intance, if I have an x of type cipher_string that models a cipher
+ * type, then hash(x).
+ * 
+ * Now, I can construct a set of these in various ways. One is to just do
+ * the xor thing described elsewhere but of this approach only permits
+ * equality and union operations... I could also make a cipher set that
+ * permits contains queries using the cipher map model. This cipher map model
+ * will take a vector of cipher_string and make a cipher set. However, if
+ * each plaintext element x of type X maps to a set of cipher_string
+ * representations, for homophonic encryption for instance, then only having
+ * individual representations is not enough, but the cipher map may be
+ * still constructed if the cipher_string generator is available. So,
+ * we iterate through the strings in the set A of type 2^string, map them to
+ * values of type cipher_string, then iterate over each cipher_string
+ * to get all the representations for each, and then generate the cipher
+ * map (or cipher set), e.g., cipher_set<cipher_string> which has a predicate
+ * bool contains : cipher_set<cipher_string> -> cipher_string -> cipher_bool.
+ * 
+ * Should cipher_string be cipher<string>? probably, now its a monad of sorts.
+ * we're lifting it.
+ * 
+ * 
+ * the trapdoor is interesting. i think almost all cipher values can be
+ * modeled as this. the cipher_set<cipher_string> has a to_hash() function
+ * also, for instance, and now we can, for instance, generate
+ * a cipher_set<cipher_set<cipher_string>> by taking a list of
+ * cipher_set<cipher_string> and making it.
+ * 
+ * however, now we see again, that such a cipher_set<cipher_set<cipher_string>>
+ * value, given two independent such sets, will have either the same or diff.
+ * representations. if same rep, then we have the frequency / correlation
+ * problem as before, but we can treat it like a normal cipher_set.
+ * 
+ * if each cipher_set is also a random variable a priori, then having a
+ * particular realization of a cipher_set<cipher_string> as the elements
+ * of cipher_set<cipher_set<cipher_string>> is incomplete. as before, though,
+ * if we have the generators and the secret, we could in theory make *all*
+ * such cipher_sets for a given cipher_set<cipher_string>... but there could
+ * be *many* such representations (even countably infinite many, unless rate
+ * distortion is imposed). 
+ */
+
+
 unsigned int hash(string_view x)
 {
     return 0;
@@ -49,6 +99,10 @@ unsigned int hash(string_view x)
  * 
  * 
  */
+
+
+
+// make this a type-erasure
 template <typename X>
 struct trapdoor
 {
@@ -56,14 +110,30 @@ struct trapdoor
 
     trapdoor() : {}
 
-    trapdoor(X const & x, string_view k) :
-        key_hash(hash(k)), value_hash(hash(x) ^ key_hash) {}
+    template <typename Cipher>
+    trapdoor(Cipher const & x, string_view k)
+    {
+
+    }       
 
     unsigned int value_hash;
 
     // the key hash is a hash of the secret key,
     // which faciliates a form of dynamic type checking.
     unsigned int key_hash;
+
+
+private:
+    struct concept
+    {
+
+    };
+
+    template <typename Cipher>
+    struct model
+    {
+
+    };
 };
 
 template <typename X>
@@ -132,4 +202,13 @@ bool operator!=(trapdoor<X> const & x, trapdoor<X> const & y)
     return x.key_hash != y.key_hash && x.value_hash != y.value_hash;
 }
 
+template <typename X, typename Y>
+bool operator==(trapdoor<X> const &, trapdoor<Y> const &)
+{
+    return false;
+}
 
+
+
+
+// key_hash(hash(k)), value_hash(hash(x) ^ key_hash) {}
