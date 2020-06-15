@@ -20,5 +20,5 @@ bool operator<(log_rate x, log_rate y) { return x.k < y.k; }
 bool operator<=(log_rate x, log_rate y) { return x.k <= y.k; }
 bool operator==(log_rate x, log_rate y) { return x.k == y.k; }
 bool operator!=(log_rate x, log_rate y) { return x.k != y.k; }
-bool operator>(log_rate x, log_rate y) { return x.k < y.k; }
-bool operator>=(log_rate x, log_rate y) { return x.k <= y.k; }
+bool operator>(log_rate x, log_rate y) { return x.k > y.k; }
+bool operator>=(log_rate x, log_rate y) { return x.k >= y.k; }
