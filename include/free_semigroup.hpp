@@ -45,67 +45,55 @@ unsigned int hash(string_view x)
     return 0;
 }
 
-template <typename X>
-struct concat {};
+
 
 template <typename X>
-struct identity {};
-
-struct search_key
-{
-    std::string value;
-};
-
-/**
- * A trapdoor of X is a one-way transformation of values of type X
- * to trapdoor<X>. Let the one-way transformation be denoted by
- *     make_trapdoor : {0,1}^* -> X -> trapdoor<X>,
- * where the first argumen is a secret key.
- * 
- * Then, the partial application
- *     T(x) := \x -> make_trapdoor(s,x)
- * is of type X -> trapdoor<X> where s is the secret.
- * 
- * T is one-way in two independent senses:
- * 
- *     (1) T is easy to compute, but its "inverse" U : trapdoor<X> -> 2^X
- *         is (generally) hard.
- * 
- *     (2) Since T is (generally) non-invertible, U(t) := { x in X | T(x) = t }
- *         and thus each t in trapdoor<X> may map to multiple values in X.
- *
- *         In many cases, such as when X is a the free semigroup of a finite alphabet,
- *         U(t) is countably infinite for any t in trapdoor<X>. Thus, revealing
- *         which values U(t) maps to may not be very informative.
- */
-template <typename X>
-struct trapdoor
+struct trapdoor_intersection
 {
     using value_type = X;
 
-    trapdoor() : {}
+    trapdoor_intersection() : value_hash(0), key_hash(0) {}
 
-    trapdoor(X const & x, string_view k)
-    {
-        key_hash = hash(k);
-        value_hash = hash(x);
-        value_hash ^= key_hash;
-    }
+    trapdoor_intersection(trapdoor_intersection const & copy) :
+        value_hash(copy.value_hash, copy.key_hash) {}
 
     unsigned int value_hash;
-
-    // the key hash is a hash of the secret key,
-    // which faciliates a form of dynamic type checking.
     unsigned int key_hash;
 };
 
 template <typename X>
-trapdoor<X> make_trapdoor(
-    trapdoor<X> const & x,
-    string_view k)
+struct trapdoor_empty_set
 {
-    return trapdoor<X>(x,k);
-}
+    // type-erased version of trapdoor sets
+    // a trapdoor_set<X> is itself a trapdoor<powerset<X>>.
+};
+
+
+struct trapdoor_empty_set
+{
+
+};
+
+// this models the empty set
+template <typename X>
+struct identity<trapdoor_union<X>>
+{
+    auto operator()() const
+    {
+        return trapdoor_union<X>();
+    }
+};
+
+// this models the empty set
+template <typename X>
+struct identity<trapdoor_intersection<X>>
+{
+    auto operator()() const
+    {
+        return trapdoor_intersection<X>();
+    }
+};
+
 
 template <typename X>
 optional<trapdoor<X>> concat(
@@ -119,3 +107,100 @@ optional<trapdoor<X>> concat(
     t.value_hash = x.value_hash ^ y.value_hash;
 
 }
+
+template <typename X>
+optional<trapdoor_union<X>> operator+(
+    trapdoor_union<X> const & x,
+    trapdoor_union<X> const & y)
+{
+    if (x.key_hash != y.key_hash)
+        return {};
+
+    // since xor (^) is assocative and commutative,
+    //     + : trapdoor_union<X> -> trapdoor_union<X> -> trapdoor_union<X>
+    // is also assocative and commutative.
+    return trapdoor_union<X>(x.value_hash ^ y.value_hash, x.key_hash);
+}
+
+
+template <typename X>
+trapdoor_intersection<X> operator*(
+    trapdoor_intersection<X> const & x,
+    trapdoor_intersection<X> const & y)
+{
+    // a trapdoor of x of type X with respect to a secret k is different than
+    // a trapdoor of x of type X with respect to a secret l. therefore, the
+    // intersection of two such sets A and B respectively with secrets k and
+    // l is the empty set, i.e., they do not overlap.
+    if (x.key_hash != y.key_hash)
+        return trapdoor_intersection<X>();
+
+    // since xor (^) is assocative and commutative,
+    //     * : trapdoor_intersection<X> -> trapdoor_intersection<X> -> trapdoor_intersection<X>
+    // is also assocative and commutative.
+    return trapdoor_intersection<X>(x.value_hash ^ y.value_hash, x.key_hash);
+
+}
+
+
+template <typename X>
+auto insert(trapdoor<X> const & x, trapdoor_union<X> xs)
+{
+    if (x.key_hash != xs.key_hash)
+        throw invalid_argument("mismatched secret keys");
+
+    return trapdoor_union<X>(xs.value_hash ^ x.value, x.key_hash);
+}
+
+
+// the probability P[make_trapdoor(x) == make_trapdoor(y) | x != y],
+// assuming a cryptographic hash function, is the probabiliity that
+// they both hash to the same value, 1 / |unsigned int|.
+template <typename X>
+exponential_rate<unsigned int> error_rate(trapdoor<X> const & x)
+{
+    return exponential_rate<unsigned int>(sizeof(x.value_hash))
+}
+
+template <typename X>
+bool operator==(trapdoor<X> const & x, trapdoor<X> const & y)
+{
+    return x.key_hash == y.key_hash && x.value_hash == y.value_hash;
+}
+
+template <typename X>
+bool operator!=(trapdoor<X> const & x, trapdoor<X> const & y)
+{
+    return x.key_hash == y.key_hash && x.value_hash == y.value_hash;
+}
+
+template <typename X, typename Y>
+bool operator==(trapdoor<X> const &, trapdoor<Y> const &)
+{
+    return false;
+}
+
+template <typename X1, typename X2>
+auto operator+(
+    trapdoor_union<X1> const & x,
+    trapdoor_union<X2> const & y)
+{
+    // if X1 and X2 are different types, then the union is automatically
+    // disjoint. Normally, this is fine, we could just represent their
+    // union as normal, but 
+    return trapdoor_disjoint_union<X1,X2>(
+        x.value_hash, x.key_hash,
+        y.value_hash, y.key_hash);
+}
+
+
+template <typename X1, typename X2>
+auto operator*(
+    trapdoor_intersection<X1> const & x,
+    trapdoor_intersection<X2> const & y)
+{
+    // values of type X1 do not overlap with values of type X2 so return
+    // the empty set.
+    return trapdoor_empty_set{};
+}
+
