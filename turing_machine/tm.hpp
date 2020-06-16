@@ -191,3 +191,132 @@ struct utm
     f0 * * r f2
     f2 * * r f0
  */
+
+
+
+
+
+
+
+
+
+
+
+
+/***
+ * Can we replace {L,S,R} with c {L,S,R}? We use the direction to increment or decrement
+ * a position (for the IO sequence).
+ * 
+ * So, given a plaintext alphabet vector of type
+ *     vec A
+ * with
+ *     at : vec A -> index -> A
+ *     set : vec A -> index -> A -> IO (),
+ * we replace it with a cipher alphabet vector of type
+ *     c vec c A
+ * with
+ *     at : c vec c A -> c index -> c A
+ *     set : c vec c A -> c index -> c A -> c IO ()
+ * 
+ * This is the ideal situation, at least. It is possible
+ * that instead of c vec c A, we will have a more revealing
+ * vec c A, which is just a plaintext vector whose elements
+ * are ciphers with 
+ *     at : vec c A -> index -> c A
+ *     set : vec c A -> index -> c A -> IO ().
+ * 
+ * A reasonable way to implement c vec c A is with a cipher
+ * map based on the perfect hash function. It is a little
+ * complicated, so let's go into the details.
+ * 
+ * If v.at(0) = a, we want cv.at(c 0) = ca. This is easy enough
+ * for a cipher map, but we must be able to modify the cipher
+ * vector also, so it's no longer a function but a mutable
+ * data structure.
+ * 
+ * 
+ * 
+ */
+
+template<
+  typename T, // transition cipher function of type (c Q, c A) -> (c Q, c A,{L,S,R})
+
+  typename I, // models the concept of the input alphabet, I subset A
+
+  typename A, // models the concept of the tape alphabet
+
+  typename Q  // models the concept of a set of cipher states
+              // the main difference between a plaintext state and a cipher state include:
+              //
+              //     (1) A cipher state encodes a plaintext state. Let encode : P -> C[P]
+              //         encode plaintext P states to cipher C[P] states. Then, encode
+              //         is a function that maps states of type P to cipher states of
+              //         type C[P].
+              //
+              //         Let decode : C[P] -> P decode cipher states of type C[P] to plaintext
+              //         states of type P. Note that this may be a partial function since
+              //         some values in C[P] may not map to any plaintext state. We could consider
+              //         the lifted function encode : C[P] -> maybe[P].
+              //
+              //         We must also have some procedure to convert elements of type P to elements
+              //         of type C[P]. We denote this the encode function, with a definition given
+              //         by
+              //             encode(x) := { p in C[P] | decode(p) = x }.
+              //         We see that encode is of type P -> 2^C[P], i.e., each plaintext x may
+              //         have multiple cipher values.
+
+
+/*
+ If, over a sample of initial inputs, the distribution of cipher states
+              //           for a given equivalence class is flat, we denote this a local homophonic
+              //           cipher with respect to the distribution on the initial inputs.
+              //
+ */ 
+              
+              //
+              //     (2) The entire history of input sequences is a list of I* with a probability
+              //         mass function p : sequence[I*] -> [0,1].
+              //
+              //           Separate input sequences of type I* may be correlated.
+              //               P[I(k)* = i*(k) | I(k-1)* = i*(k-1), ..., I(1)* = i*(1)]            
+              //           where i{p} is a sequence of of n(p) symbols, (i[p,1],...,i[p,n(p)]).
+              //
+              //           A single input sequence I*, which has a probability mass p : I* -> [0,1].
+              //           The marginal probability p : I -> [0,1] is just the relative
+              //           frequency of input symbols across a single sequence and across
+              //           separate sequences.
+              //           
+              //
+              //
+              //
+              //         - if the initial input induces a completely flat distribution across
+              //           equivalence classes, this is a global homophonic cipher.
+              //     appears uniformly random (if viewing history of them).
+              //     
+>
+struct cipher_tm
+{
+  struct tape
+  {
+    std::vector<A>;
+
+    void set_input(std::vector<I> in)
+    {
+
+    }
+  }
+  
+  using TapeAlphabet = A;
+  using InputAlphabet = I;
+  using TransitionFn = T;
+  using TapePosition = int;
+
+  Q q;
+  T t;
+
+  void run(I input)
+  {
+    Tape tape;
+    TapePosition p = 0;
+  };
+};
