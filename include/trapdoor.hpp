@@ -1,9 +1,3 @@
-#pragma once
-
-#include "log_rate.hpp"
-
-
-
 /*****
  * 
  * Anything that models a cipher type should have a hash(x)
@@ -52,7 +46,12 @@
  */
 
 
-unsigned int hash(string_view x)
+#pragma once
+
+#include "log_rate.hpp"
+#include <string_view>
+
+unsigned int hash(std::string_view x)
 {
     return 0;
 }
@@ -139,7 +138,7 @@ private:
 template <typename X>
 trapdoor<X> make_trapdoor(
     X const & x,
-    string_view k)
+    std::string_view k)
 {
     return trapdoor<X>(x,k);
 }
