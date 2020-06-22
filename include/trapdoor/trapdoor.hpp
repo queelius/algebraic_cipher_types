@@ -4,7 +4,7 @@
  * function so that they may be composed.
  * 
  * For intance, if I have an x of type cipher_string that models a cipher
- * type, then hash(x).
+ * type, then hash(x) is defined.
  * 
  * Now, I can construct a set of these in various ways. One is to just do
  * the xor thing described elsewhere but of this approach only permits
@@ -48,7 +48,7 @@
 
 #pragma once
 
-#include "log_rate.hpp"
+#include "lg.hpp"
 #include <string_view>
 
 unsigned int hash(std::string_view x)
@@ -101,38 +101,28 @@ unsigned int hash(std::string_view x)
 
 
 
-// make this a type-erasure
 template <typename X>
 struct trapdoor
 {
     using value_type = X;
 
+    static constexpr auto KEY_BYTE_LENGTH = sizeof(value_hash);
+    static constexpr auto KEY_BIT_LENGTH = CHAR_BIT * KEY_BYTE_LENGTH;
+
     trapdoor() : {}
-
-    template <typename Cipher>
-    trapdoor(Cipher const & x, string_view k)
+    trapdoor(trapdoor const &) = default;
+    
+    trapdoor& operator=(trapdoor const & rhs)
     {
-
-    }       
+        value_hash = rhs.value_hash;
+        key_hash = rhs.key_hash;
+    }
 
     unsigned int value_hash;
 
     // the key hash is a hash of the secret key,
     // which faciliates a form of dynamic type checking.
     unsigned int key_hash;
-
-
-private:
-    struct concept
-    {
-
-    };
-
-    template <typename Cipher>
-    struct model
-    {
-
-    };
 };
 
 template <typename X>
@@ -176,17 +166,96 @@ trapdoor<X> make_trapdoor(
 // of k and l map to the same hash is 1 / n also. If they map to the same
 // hash, then 
 
-template <typename X, typename Op>
-constexpr log_rate fpr_equality(trapdoor<X> const &)
+
+template <typename X>
+unsigned int hash(trapdoor<X> const & x)
 {
-    return log_rate{CHAR_BIT * sizeof(decltype(trapdoor<X>::value_hash))};
+    return x.value_hash;
 }
 
-template <typename X, typename Op>
-constexpr log_rate fnr_equality(trapdoor<X> const &)
+template <typename T>
+struct equality_pred
 {
-    return log_rate{};
-}
+    static auto operator()(T const & x, T const & y)
+    {
+        return x == y;
+    }
+};
+
+template <typename T>
+struct inequality_pred
+{
+    static auto operator()(T const & x, T const & y)
+    {
+        return x != y;
+    }
+};
+
+
+template <typename T>
+struct approximation_error {};
+
+/**
+ * Approximation errors on predicates
+ * have exactly two types of errors,
+ * false positives and false negatives.
+ * 
+ * Suppose we have an approximation
+ * x' of x.
+ * 
+ * The false positive rate is given by
+ *     P[p(x') | ~p(x)]
+ * and the false negative rate is given by
+ *     P[~p(x') | p(x)].
+ * 
+ * A well-defined predicate P for an approximate
+ * type T defines a structure
+ * 
+ *     struct<approximation_error<P<T>>.
+ * 
+ * If P is unary, then it defines the function
+ *     fpr : struct<approximation_error<P<T>> -> [0,1]
+ * which maps the predicate 
+ * 
+ * 
+ * 
+ */
+
+
+template <typename X>
+struct approximation_error<equality_pred<trapdoor<X>>>
+{
+    // 2^(-k)
+    //
+    // log2(x) = ln(x)/ln(2)
+    // ln(x) = log2(x) * ln(2)
+    //
+    // ln(x) = -k * ln(2)
+    // 
+    auto fpr() const
+    {
+        return lg<double>{-(double)trapdoor<X>::KEY_BIT_LENGTH * log(2.0)};
+    }
+
+    auto fnr() const
+    {
+        return lg<double>{0};
+    }
+};
+
+template <typename X>
+struct approximation_error<inequality_pred<trapdoor<X>>>
+{
+    auto fpr() const
+    {
+        return lg<double>(0);
+    }
+
+    auto fnr() const
+    {
+        return lg<double>(0);
+    }
+};
 
 
 template <typename X>
@@ -206,8 +275,6 @@ bool operator==(trapdoor<X> const &, trapdoor<Y> const &)
 {
     return false;
 }
-
-
 
 
 // key_hash(hash(k)), value_hash(hash(x) ^ key_hash) {}
