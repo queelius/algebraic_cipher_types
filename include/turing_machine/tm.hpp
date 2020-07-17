@@ -58,8 +58,6 @@ struct selector
     auto operator()(I b, I) const { return b; }
 };
 
-
-
 template <typename A, typename Q, typename D, typename Selector = selector>
 class transition_fn
 {
@@ -90,36 +88,47 @@ class transition_fn
     struct order
     {
         // partial order; for lookup, we care about first two element types Q
-        // and Q in the relation, which defines a relation Q x A x A x D x Q,
-        // where x is the n-fold Cartesian product.
+        // and A in the relation, which defines a relation Q x A x A x D x Q.
         //
-        // The selector turns this relation into a functional relation of the
-        // type Q x A -> A x D x Q.
+        // In full generality, since the relation may not be functional, we
+        // say that this describes a functionality relation of the type
+        //     Q x A -> P(A X D x Q)
+        // where P is the powerset function.
         //
-        // The selector is given an iterator range
-        // of tuple values whose first two component values are equal to
-        // the given inputs a and b. By the partial ordering property, these
-        // tuples are all int he same equivalence class, and they partition
-        // the relation into disjoint subsets. Thus, we provide the selector
-        // with the partition related to inputs a and b.
+        // It is the responsibility of the Selector type to map this relation
+        // into either a functional relation of the type
+        //     Q x A -> A x D x Q,
+        // which may actually replace some of the control logic in the Turing
+        // machine, or a distribution over A x D x Q.
+        //
+        // The selector is given an iterator range of tuple values whose first
+        // two component values are equal to the given inputs a and b. By the
+        // partial ordering property, this partitions the relation into disjoint
+        // subsets where each subset is denoted an equivalence class. Thus, we
+        // provide the selector with the partition indexed by <a,b> and the
+        // selector then selects a tuple ement from the indexed partition in
+        // some way. Of course, the selector can do anything it wants, but that
+        // is the general idea. If it does something else, that too may be
+        // interesting but is outside the scope of this discussion.
         //
         // The selector gives another degree of freedom in defining how the
         // Turing machine operates. By default, it just returns the first
-        // element in the iterator range, but it can do anything else.
-        //
-        // For instance, the Turing machine may be some extended Turing machine
-        // that changes over time, e.g., the selector has a built-in counter
-        // and, say, returns the k-th element in the rank on the k-th
-        // invocation.
-        //
-        // More interestingly, the selector may select a random element from the
-        // range, thus defining a non-deterministic Turing machine. Many such
-        // random walks may return many different outputs, and thus the Turing
-        // machine becomes a random program. This may be useful in, say,
-        // Monte carlo simulation.
+        // element in the iterator range.
         // 
-        // However, it may not actually be a partial function; it could,
-        // instead, but a probability distribution, or something else.
+        // A more novel approach may augment the Turing machine's logic such
+        // that it becomes sensitive to a logical time index (i.e., a
+        // non-ergodic Turing machine that changes over time by using a selector
+        // with a built-in counter that returns the k-th element in the
+        // partition on the k-th invocation.
+        //
+        // However, more typically, it is designed so that non-deterministic
+        // Turing machines may be considered. In this case, the selector is a
+        // random function that induces a non-deterministic Turing machine.
+        // Repeated invocations of an input on the non-deterministic Turing
+        // machine generates a *sampling distribution* over the output (some
+        // of which may not halt and thus may be terminated after some number
+        // of time steps) and thus defines a random Turing machine or
+        // equivalently a random program.
         bool operator()(element const & a, element const & b)
         {
             if (a.cur != b.cur)
