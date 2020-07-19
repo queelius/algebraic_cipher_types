@@ -121,9 +121,10 @@ template <typename T>
 auto operator>=(lg<T> const & x, lg<T> const & y) { return x.k >= y.k; }
 
 /**
- * Stirling's approximation.
- * 
  * gamma : lg<T> -> lg<T>
+ * 
+ * Stirling's approximation
+ * of the gamma function.
  */
 template <typename T>
 auto gamma(lg<T> const & x)
@@ -176,7 +177,6 @@ auto abs(lg<T> const & x) { return x; }
 template <typename T>
 auto floor(lg<T> const & x) { return x; }
 
-
 template <typename T>
 auto fac(int n)
 {
@@ -212,7 +212,7 @@ auto fac(int n)
  * 
  * (Note: we would prefer to return an
  * optional<lg<T>>{} so that nothing is
- * returned if an overflow or underflow occurs,+++++++++++++++++++++++++++++++++++++++++++
+ * returned if an overflow or underflow occurs,
  * but C++ does not play very well with
  * monads.)
  * 
@@ -249,7 +249,7 @@ auto exp(lg<T> const & x) { return lg<T>{(T)x}; }
  * 
  * Instead, elsewhere we provide a safe monad
  * that automatically propagates overflow or
-* underflow information and acts appropriately,-********************
+* underflow information and acts appropriately,
 * e.g., lifting
  *     f : T -> T
  * to
@@ -292,7 +292,7 @@ struct log_table
     template <typename T>
     static int log2(T const & x)
     {
-        // convert to to byte array, put in vector<char> buf.
+        // convert to byte array, put in vector<char> buf.
         const int len = buf.size();
         return len * 8 - pre_calc[buf[len - 1]] - 1;
     }
