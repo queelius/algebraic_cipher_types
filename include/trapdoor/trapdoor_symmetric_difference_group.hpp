@@ -65,7 +65,7 @@
 * 
  */
 
-template <typename X>
+template <typename X, size_t N>
 struct trapdoor_symmetric_difference_group
 {
     using value_type = X;
@@ -81,14 +81,26 @@ struct trapdoor_symmetric_difference_group
         value_hash(copy.value_hash),
         key_hash(copy.key_hash) {}
 
-    unsigned int value_hash;
-    unsigned int key_hash;
+    array<char,N> value_hash;
+    array<char,4> key_hash;
 };
 
-template <typename X>
+/**
+ * This is the only function implicitly defined for the type.
+ * Other functions of the type must use a cipher map.
+ */
+template <typename X, size_t N>
+approximate_bool operator==(
+    trapdoor_symmetric_difference_group<X,N> const & lhs,
+    trapdoor_symmetric_difference_group<X,N> const & rhs)
+{
+    return approximate_bool{lhs.value_hash == rhs.value_hash, .5};
+}
+
+template <typename X, size_t N>
 auto make_empty_trapdoor_symmetric_difference_group()
 {
-    return trapdoor_symmetric_difference_group<X>();
+    return trapdoor_symmetric_difference_group<X,N>();
 }
 
 /**
@@ -96,10 +108,10 @@ auto make_empty_trapdoor_symmetric_difference_group()
  * when the argument sets are disjoint (it is a dependent type). If they are
  * not disjoint, the operation has undefined behavior.
  */
-template <typename X>
+template <typename X, size_t N>
 auto operator+(
-    trapdoor_symmetric_difference_group<X> const & x,
-    trapdoor_symmetric_difference_group<X> const & y)
+    trapdoor_symmetric_difference_group<X,N> const & x,
+    trapdoor_symmetric_difference_group<X,N> const & y)
 {
     if (key_hash(x) != key_hash(y))
         throw invalid_argument("secret key mismatch");
@@ -124,25 +136,14 @@ auto operator+(trapdoor_symmetric_difference_group<X> const & xs, trapdoor<X> co
 }
 
 /**
- * remove is a partial function that is only defined when x in xs.
+ * We see that the empty set is the 0's string.
+ * Since a hash can map to all 0's, and xoring values may also, there is
+ * some probability that a non-empty set will map to all zeros.
  */
 template <typename X>
-auto remove(
-    trapdoor<X> const & x,
-    trapdoor_symmetric_difference_group<X> const & xs)
-{
-    if (key_hash(x) != key_hash(y))
-        throw invalid_argument("secret key mismatch");
-
-    return trapdoor_symmetric_difference_group<X>(
-        hash(xs) ^ hash(x),
-        key_hash(xs));
-}
-
-template <typename X>
-bool is_empty(trapdoor_symmetric_difference_group<X> const & xs)
+approximate_bool empty(trapdoor_symmetric_difference_group<X> const & xs)
 {
     // additive identity is the zero bit string.
-    return count_set_bits(hash(xs)) == 0;
+    return approximate_bool{xs.hash_value == 0,.5};
 }
 
