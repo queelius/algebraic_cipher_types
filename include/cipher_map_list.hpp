@@ -13,8 +13,8 @@
  * f of type F is a cipher map cipher<X> -> cipher<Y> with the characteristic
  * that f(hash x)
  * 
- * We model the list with a proxy that exploits the xor-orbit of F k as being the definition of the list
- * that k maps to.
+ * We model the list with a proxy that exploits the xor-orbit of F k as being
+ * the definition of the list that k maps to.
 
  * F models a function of type
  *     c X -> c Y
@@ -48,7 +48,7 @@ using std::list;
  * 
  * it is a cipher map that maps cipher keys to cipher list of cipher values.
  * 
- * the keys are not iterable, but the cipher list is for a given key is.
+ * the keys are not iterable, but the cipher list for a given key is.
  * it is also a positive random approximate map. first order.
  * 
  * consider:
@@ -168,7 +168,93 @@ private:
 };
 
 
-template <typename K, typename V>
+template <typename X, typename Y>
+struct trapdoor_map {};
+
+
+template <typename X, typename Y>
+struct frozen_map {};
+
+
+template <typename X>
+struct trapdoor<std::list<X>> {};
+
+// models the immutable map concept
+template <typename X, typename Y>
+class trapdoor_map
+{
+public:
+    using size_type = size_t;
+    using input_type = trapdoor<X>;
+    using key_type = input_type;
+
+    using output_type = Y;
+    using value_type = output_type;
+
+    using hash_type = decltype(hash(declval(input_type)));
+
+    auto operator()(key_type const & x) const
+    {
+        concept_->map(x);
+    }
+
+    auto key(key_type const & key) const
+    {
+        concept_->is_key(key);
+    }
+
+private:
+    struct concept
+    {
+        // cipher<bool> is a type-erasure for cipher values of type
+        // bool.
+        virtual cipher<bool> is_key(X const &) const = 0;
+        virtual Y map(X const &) const = 0;
+    };
+
+    template <typename F>
+    struct model
+    {
+        cipher<bool> is_key(X const & x) const
+        {
+            return f.is_key(x);
+        }
+
+        Y map(X const & x) const
+        {
+            return f(x);
+        }
+
+        F f;
+    };
+};
+
+
+
+
+
+
+
+
+
+// this should output the data structure for
+//     cipher<X> -> cipher<list<cipher<Y>>>
+// if there is no way to retrieve the plaintext from cipher<X> or cipher<Y>,
+// we denote the type instead by
+//     trapdoor<X> -> cipher<list<trapdoor<Y>>>.
+// The computational basis of trapdoor<Y> is not sufficient
+// to reconstruct Y, so tThe list of trapdoors that trapdoor<X> maps to is also
+// a trapdoor since there is no way to convert it to list<Y>. It can only be
+// converted to list<trapdoor<Y>>. The computational basis of
+// cipher<list<trapdoor<Y>> is iteration of trapdoor<Y> and the computational
+// basis of trapdoor<Y>.
+//
+// So, trapdoor(f) outputs a data structure A that models
+//     trapdoor<X> -> trapdoor<list<trapdoor<Y>>>.
+// 
+
+
+template <typename X, typename Y, typename A>
 auto cipher(map<K,list<V>> const & f)
 {
     for (auto p : f)
