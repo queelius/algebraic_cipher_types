@@ -228,6 +228,13 @@ namespace alex::cipher
         }
 
         template <typename T>
+        T as_type(cipher_value<T> x, secret_type s) const
+        {
+            return 
+        }
+
+
+        template <typename T>
         bool is_type(cipher_type t, secret_type s) const
         {
             return cipher(typeid(T).hash_code(), s) == t;
