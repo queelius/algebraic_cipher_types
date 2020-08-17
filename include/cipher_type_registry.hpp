@@ -1,11 +1,73 @@
 #pragma once
 
+/**
+ * We have a simple type system.
+ * 
+ * Type info (plaintext) is converted
+ * to cipher type info.
+ * 
+ * Type info tells us what the bits of
+ * a value represents, e.g., a value
+ * of type bool has a false value
+ * given by all zeros and any other
+ * is true.
+ * 
+ * First, we map a primitive type's tag
+ * to a cipher tag (e.g., hash w/secret).
+ * This is sufficient to do approximate
+ * type checking, and if the secret is
+ * known then we may be able to reconstruct
+ * the type, assuming its not a trapdoor
+ * type.
+ * 
+ * We compose these primitive types using
+ * operations like sum type and product
+ * type.
+ * 
+ * Sum type X+Y is reprented as
+ *     (+ (cipher_type_info X) (cipher_type_info Y))
+ * where (cipher_type_info X) is just, say
+ * a hash of the type info for X.
+ * 
+ * Uses S-expressions to allow for easy
+ * recursive types. For instance,
+ * X+(Y*Z) has
+ *     (+ (cipher_type_info X)
+ *        (* (cipher_type_info Y) (cipher_type_info Z))
+ * We don't cipher + and *, only the primitives,
+ * since to check that, say, a function is accepting
+ * only arguments of type cipher_type_info X or
+ * cipher_type_info Y, we need to know that its a
+ * sum type.
+ * 
+ * Note that if a cipher of (+ X Y) is used, such that
+ * X and Y are cominged (not independent), then we
+ * may use hash(X) | hash(Y) as the type instead,
+ * and for a cipher of (* X Y), a pair, we may
+ * use hash(X) ^ hash(Y) instead. This is reasonable
+ * since we've ciphered the pairs, i.e.,
+ *     cipher(X + Y) instead of cipher(X) + cipher(Y).
+ * 
+ * We can also do the same for more complex types,
+ * or even custom algebraic data types, e.g.,
+ * instead of type (cipher X)*, a list of (cipher X)
+ * we may have a type cipher(X*) with a cipher info
+ * hash(cipher(X*)) instead of list(cipher(X)).
+ * 
+ * 
+ * 
+ *
+ * 
+ */
+
+
 #include <iostream>
 #include <map>
 #include <string>
 #include <functional>
 #include <string_view>
 #include <optional>
+#include "cipher_tag.hpp"
 
 using std::string;
 using std::move;
@@ -28,7 +90,7 @@ namespace alex::cipher
     // whatever types two values represent, we can determine if they have the
     // same type.
     template <size_t MagicBits>
-    struct cipher_type_registry
+    struct cipher_tag_registry
     {
         using trapdoor_type = size_t;
         using cipher_type = size_t;
@@ -37,9 +99,9 @@ namespace alex::cipher
 
         // approximate type on
         //     == : cipher_type_info -> cipher_type_info -> bool
-        struct cipher_type_info
+        struct cipher_tag_info
         {
-            cipher_type value;
+            cipher_tag value;
             cipher_type_registry const & reg;
 
             bool operator==(cipher_type_info const & rhs) const
