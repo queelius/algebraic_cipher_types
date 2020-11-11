@@ -38,18 +38,25 @@ using std::shared_ptr;
 
 struct cipher_type {};
 
-template <typename T = cipher_type>
+template <typename A = cipher_type, typename B = cipher_type>
 class cipher_if
 {
 public:
     using input_type = cipher<bool>;
-    using output_type = T;
+    using output_true_type = A;
+    using output_false_type = B;
 
     auto operator()(cipher<bool> e) const
     {
         // f is a cipher map on cipher[bool]
         return if_->eval(e);
     }
+
+    // CipherMap models the concept of
+    // a function of type
+    //     cipher<bool> -> A + B
+    template <typename CipherMap>
+    cipher_if(CipherMap if) : make_shared<CipherMap>{if} {}
 
 private:
     struct concept

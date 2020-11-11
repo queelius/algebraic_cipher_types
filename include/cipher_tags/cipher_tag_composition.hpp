@@ -133,7 +133,8 @@ namespace alex::cipher
     // this and then we'd get a single cipher_tag.
 
 
-    // function type A::value_type -> B::value_type
+    // models the concept of a function of type
+    //     A::value_type -> B::value_type
     template <typename A, typename B>
     struct cipher_tag_exponential
     {

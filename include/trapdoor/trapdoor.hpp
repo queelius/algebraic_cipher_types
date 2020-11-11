@@ -112,25 +112,25 @@ struct trapdoor
     trapdoor() : {}
     trapdoor(trapdoor const &) = default;
     
-    trapdoor& operator=(trapdoor const & rhs)
+    auto & operator=(trapdoor const & rhs)
     {
         value_hash = rhs.value_hash;
         key_hash = rhs.key_hash;
     }
 
-    unsigned int value_hash;
+    size_t value_hash;
 
     // the key hash is a hash of the secret key,
     // which faciliates a form of dynamic type checking.
-    unsigned int key_hash;
+    size_t key_hash;
 };
 
 template <typename X>
-trapdoor<X> make_trapdoor(
+auto make_trapdoor(
     X const & x,
     std::string_view k)
 {
-    return trapdoor<X>(x,k);
+    return trapdoor<X>{x,k};
 }
 
 // Equality for trapdoor<X> is defined as both the secret hash and the value
@@ -168,7 +168,7 @@ trapdoor<X> make_trapdoor(
 
 
 template <typename X>
-unsigned int hash(trapdoor<X> const & x)
+auto hash(trapdoor<X> const & x)
 {
     return x.value_hash;
 }
