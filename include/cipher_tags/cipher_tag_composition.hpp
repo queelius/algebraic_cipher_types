@@ -1,5 +1,40 @@
 #pragma once
 #include "cipher_tag.hpp"
+/**
+ * We compose these primitive types using
+ * operations like sum type and product
+ * type.
+ * 
+ * Sum type X+Y is reprented as
+ *     (+ (cipher_type_info X) (cipher_type_info Y))
+ * where (cipher_type_info X) is just, say
+ * a hash of the type info for X.
+ * 
+ * Uses S-expressions to allow for easy
+ * recursive types. For instance,
+ * X+(Y*Z) has
+ *     (+ (cipher_type_info X)
+ *        (* (cipher_type_info Y) (cipher_type_info Z))
+ * We don't cipher + and *, only the primitives,
+ * since to check that, say, a function is accepting
+ * only arguments of type cipher_type_info X or
+ * cipher_type_info Y, we need to know that its a
+ * sum type.
+ * 
+ * Note that if a cipher of (+ X Y) is used, such that
+ * X and Y are cominged (not independent), then we
+ * may use hash(X) | hash(Y) as the type instead,
+ * and for a cipher of (* X Y), a pair, we may
+ * use hash(X) ^ hash(Y) instead. This is reasonable
+ * since we've ciphered the pairs, i.e.,
+ *     cipher(X + Y) instead of cipher(X) + cipher(Y).
+ * 
+ * We can also do the same for more complex types,
+ * or even custom algebraic data types, e.g.,
+ * instead of type (cipher X)*, a list of (cipher X)
+ * we may have a type cipher(X*) with a cipher info
+ * hash(cipher(X*)) instead of list(cipher(X)).
+ */
 
 namespace alex::cipher
 {

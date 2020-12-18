@@ -4,64 +4,187 @@
 using std::shared_ptr;
 
 
-// type-erase model of the the concept
-// template<>
-// class cipher<cipher<bool>,cipher<T>>
+/**
+ * An abstract function f : X -> Y is just a set of tuples,
+ *     f := {(x1,y1),(x2,y2),...(xn,yn)}
+ * with the notation that
+ *     f(x) = y <=> (x,y) in f
+ * and with the constraint that if (x,y) in f, then (x,y') not in f if y'!=y.
+ * 
+ * If f is partial, then for some x in X, there does not exist a y such that
+ * (x,y) in f, in which case we say that f(x) is undefined. If a function is
+ * defined for every element in the domain, it is denoted a total function.
+ * 
+ * Even constant values of some type Y may be considered functions of the form
+ *     () -> Y,
+ * where Unit is denotes some canonical set of size 1. Since it only has a
+ * single element, there is no ambiguity with respecto to which element of ()
+ * is being referred to, and we typically denote the *element* of the set ()
+ * as () also.
+ * 
+ * Thus, for instance, a constant c may be understood as a function c : () -> Y
+ * with a definition given by c() := c.
+ * 
+ * Putting aside the complication of side-effects, any program can be understood
+ * as computing some function. The computation that models some
+ * function is known as an algorithm, and conceptually you can just model the
+ * computation as a table lookup, e.g., for a total function of type X -> Y
+ * you need a set of tuples of size |X|. Since X may be infinite or
+ * impractically to store in a computer memory, this is often impractical, and
+ * instead we use a more efficient algorithm to generate the result.
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * Type-erased model of the the concept
+ * a cipher-if function of type
+ *     CipherBool -> A + B
+ * where if the input models CipherTrue
+ * then a value of type A is returned,
+ * otherwise a value of type B is returned.
+ * 
+ * Note: We may replace CipherBool with
+ * NoisyCipherBool, in which case
+ * if the input models CipherTrue
+ * then a value of type A is returned,
+ * if the input models CipherFalse
+ * then a value of type B is returned,
+ * and otherwise the input is *noise*
+ * and some random byte string is
+ * returned.
+ * 
+ * Typically, types A and B model
+ * cipher value types, e.g.,
+ *     CipherBool -> Cipher<X>+Cipher<Y>,
+ * or even
+ *     CipherBool -> Cipher<X+Y>.
+ */
 
-// cipher if : cipher bool -> T -> T
-// this means that 'if' is a cipher map
-// that accepts a cipher bool and returns
-// a value of type T.
+
+// A cipher-if of type
+//     CipherBool -> T
+// models the concept of an if-function
+//     bool -> T
+// where the adversary is not able to determine whether the output for a given
+// input is the result of the input modeling a CipherTrue value or a CipherFalse
+// value, assuming:
+// (1) The adversary does not know the secret morphism CipherBool -> bool.
+// (2) The adversary does not know the if-expression modeling modeled.
+// 
+// If the adversary may apply the if-function to a CipherBool value and
+// determine whether it models CipherTrue or CipherFalse, then it is not a
+// cipher-if function of the type
+//     CipherBool -> T.
+//
+// ===
+// Removing assumption (2):
+//
+// Suppose the adversary knows the definition of the if-expression being modeled
+// by the cipher-if, e.g.,
+//     if true then A else B.
+//
+// Then, if the adversary observes output A he knows the input was CipherTrue.
+// Thus, by removing assumption (2) above, a cipher-if function must satisfy
+// a stronger set of conditions.
+//
+// A stronger condition is a cipher-if of type
+//     CipherBool -> CipherT
+// such that observing the output does not tell us which value of type T
+// is being modeled by the output of type CipherT.
+//
+// ===
+// Removing assumption (1):
+//
+// Suppose the adversary knows the morphism CipherBool -> bool.
+// Then, the function may as well be of type
+//     bool -> T
+// and we may infer its definition by applying the if-function to true and
+// false.
+//
+// However, what if we want to prevent the adversary from being able to infer
+// the definition?
+//
+// Suppose we have the function
+//     bool -> CipherT,
+// then applying the if-function to true only and false does not tell us which
+// values are being modeled by (if true) and (if false), unless the if-function
+// is of the type
+//     CipherBool -> CipherBool,
+// in wnich case it reduces to bool -> bool.
+//
+// Note: We could have an if-function of type
+//     CipherBool[i] -> CipherBool[j]
+// where both types are ciphers of bool, but knowing CipherBool[i] -> bool
+// does not reveal information about CipherBool[j].
 //
 //
-// suppose the original if expression was
-// 
-// let E := (if expr -1 1)
-// then, E 1 = -1
-// and   E 0 = 1.
+// Note that statistical analysis may still be used to estimate whether the
+// input models a CipherTrue value or a CipherFalse value. For instance, suppose
+// the adversary knows the if-expression being modeled is given by
+//     if true then A else B,
+// then if a priori P[true] = p, then the probability that an A is observed is
+// just p and otherwise 1-p. Therefore, if we have a cipher-if function,
+// and we have n values b1,b2,...,bn that model CipherBool, then we can observe
+// which values of CipherBool map to A and infer that 
 //
-// (cipher E) maps E to a cipher
-// expression in which the code
-// (if expr -1 1) is obscured to
-// cipher E := (if expr a' b')
-// such that (cipher E) 1 = -1
-//       and (cipher E) 0 = 1.
-// now, we also wish to pass
-// a cipher bool as the expr
-// instead of a bool.
+// ===
+// Removing assumptions (1) and (2):
+//
+// The adversary now seems to know nearly everything about the if-function.
 // 
-// 
-// 
-
-// let's also type-erase any cipher that
-// models a cipher bool to cipher<bool>.
-
-struct cipher_type {};
-
-template <typename A = cipher_type, typename B = cipher_type>
+//     
+template <typename T>
 class cipher_if
 {
 public:
     using input_type = cipher<bool>;
-    using output_true_type = A;
-    using output_false_type = B;
+    using output_type = T;
 
-    auto operator()(cipher<bool> e) const
+    template <typename CipherBool>
+    auto operator()(CipherBool e) const
     {
-        // f is a cipher map on cipher[bool]
+        // A value type that models the concept of a
+        // CipherBool can be type-erased to a
+        // cipher<bool>.
+        //
+        // There are an infinite number of ways
+        // to model a CipherBool. Two types T and
+        // U that model CipherBool are incompatible
+        // unless:
+        //
+        //     (1) There is some way of determining
+        //         some identifying feature of their
+        //         concrete types, which we call their
+        //         type signatures (say a hash or
+        //         encryption of the type signature).
+        //         Note that if values of types T and U 
+        //         were generated from the same
+        //         contructors except with differing
+        //         secrets, they are different types.
+        //
+        //     (2) There is some morphism from T to U
+        //         and/or U to T, which we call
+        //         convert : T -> optinoal<U>.
+        //         
+        // Of course, on the *trusted* machine, we may
+        // just convert T to bool and then, if desired,
+        // convert bool to U.
         return if_->eval(e);
     }
 
     // CipherMap models the concept of
     // a function of type
-    //     cipher<bool> -> A + B
+    //     CipherBool -> A + B
     template <typename CipherMap>
     cipher_if(CipherMap if) : make_shared<CipherMap>{if} {}
 
 private:
     struct concept
     {
-        virtual T eval(cipher<bool> e) const = 0;
+        virtual variant<A,B> eval(cipher<bool> e) const = 0;
     };
 
     shared_ptr<concept const> if_;
@@ -71,24 +194,18 @@ private:
     {
         CipherMap if_;
 
-        cipher<T> eval(cipher<bool> e) const
+        variant<A,B> eval(cipher<bool> e) const
         {
-            return if_(e);
+            // by default, convert(e, e.type_signature()) is
+            // just the identity function id(e).
+            if (auto g = convert(e, if_.input_type_signature()))
+                return if_->eval(g);
         }
     };
 };
 
 
 
-
-/**
- * cipher<bool> models the concept of an
- * approximate cipher Boolean.
- * 
- * it does not support equality operations;
- * rather, a secret must be known to decode
- * to a plaintext bool to perform such queries.
- */
 
 /**
  * process;
@@ -121,81 +238,3 @@ private:
  */
 
 
-struct cipher
-{
-    
-}
-
-template <>
-class cipher<bool>
-{
-public:
-    using plain_value_type = bool;
-
-    // make this a separate class?
-    using meta_info_type = map<string, variant<string,size_t,cipher_type>>;
-
-    auto fpr() const { return bool_->fpr(); }
-    auto fnr() const { return bool_->fnr(); }
-    auto size() const { return bool_->size(); }
-    auto meta_info() const { return bool_->meta_info(); }
-    auto try_convert(string_view secret) const
-    {
-        return bool_->try_convert(secret);
-    }
-
-private:
-    struct concept
-    {
-        virtual double fnr() const = 0;
-        virtual double fpr() const = 0;
-        virtual size_t size() const = 0;
-
-        // what should meta_info return?
-        // instead of string, return a map?
-        virtual meta_info_type meta_info() const = 0;
-        virtual optional<bool> try_convert(string_view) const = 0;
-    };
-
-    shared_ptr<concept const> bool_;
-
-    template <typename C>
-    struct model final : concept
-    {
-        size_t size() const { return size(c); }
-        double fnr() const { return fnr(c); }
-        double fpr() const { return fpr(c); }
-        string meta_info() const { return meta_info(c); }
-        optional<bool> try_convert(string_view secret) const
-        {
-            return try_convert(c,secret);
-        }
-
-        C c;
-    };
-};
-
-auto fnr(cipher<bool> const & x)
-{
-    return x.fnr();
-}
-
-auto size(cipher<bool> const & x)
-{
-    return x.size();
-}
-
-auto fpr(cipher<bool> const & x)
-{
-    return x.fpr();
-}
-
-auto meta_info(cipher<bool> const & x)
-{
-    return x.meta_info();
-}
-
-auto convert_to(cipher<bool> const & x, string_view secret)
-{
-    return x.try_convert(secret);
-}
