@@ -6,9 +6,9 @@
  * Type info (plaintext) is converted
  * to cipher type info.
  * 
- * Type info tells us what the bits of
- * a value represents, e.g., a value
- * of type bool has a false value
+ * Type info tells us how to interpret
+ * the bits a value represents, e.g., a
+ * value of type bool has a false value
  * given by all zeros and any other
  * is true.
  * 

@@ -1,40 +1,5 @@
 #pragma once
 #include "cipher_tag.hpp"
-/**
- * We compose these primitive types using
- * operations like sum type and product
- * type.
- * 
- * Sum type X+Y is reprented as
- *     (+ (cipher_type_info X) (cipher_type_info Y))
- * where (cipher_type_info X) is just, say
- * a hash of the type info for X.
- * 
- * Uses S-expressions to allow for easy
- * recursive types. For instance,
- * X+(Y*Z) has
- *     (+ (cipher_type_info X)
- *        (* (cipher_type_info Y) (cipher_type_info Z))
- * We don't cipher + and *, only the primitives,
- * since to check that, say, a function is accepting
- * only arguments of type cipher_type_info X or
- * cipher_type_info Y, we need to know that its a
- * sum type.
- * 
- * Note that if a cipher of (+ X Y) is used, such that
- * X and Y are cominged (not independent), then we
- * may use hash(X) | hash(Y) as the type instead,
- * and for a cipher of (* X Y), a pair, we may
- * use hash(X) ^ hash(Y) instead. This is reasonable
- * since we've ciphered the pairs, i.e.,
- *     cipher(X + Y) instead of cipher(X) + cipher(Y).
- * 
- * We can also do the same for more complex types,
- * or even custom algebraic data types, e.g.,
- * instead of type (cipher X)*, a list of (cipher X)
- * we may have a type cipher(X*) with a cipher info
- * hash(cipher(X*)) instead of list(cipher(X)).
- */
 
 /**
  * We compose these primitive types using
@@ -54,7 +19,7 @@
  * We don't cipher + and *, only the primitives,
  * since to check that, say, a function is accepting
  * only arguments of type cipher_type_info X or
- * cipher_type_info Y, we need to know that its a
+ * cipher_type_info Y, we need to know that it's a
  * sum type.
  * 
  * Note that if a cipher of (+ X Y) is used, such that
@@ -67,9 +32,9 @@
  * 
  * We can also do the same for more complex types,
  * or even custom algebraic data types, e.g.,
- * instead of type (cipher X)*, a list of (cipher X)
- * we may have a type cipher(X*) with a cipher info
- * hash(cipher(X*)) instead of list(cipher(X)).
+ * instead of type list(cipher X), a list of (cipher X),
+ * we may have a type cipher(list X) with a cipher info
+ * hash(cipher(list(X))) instead of list(cipher(X)).
  */
 
 namespace alex::cipher
@@ -207,14 +172,14 @@ namespace alex::cipher
     // models the concept of a function of type
     //     A::value_type -> B::value_type
     template <typename A, typename B>
-    struct cipher_tag_exponential
+    struct cipher_tag_fn
     {
         using domain_type = typename A::value_type;
         using codomain_type = typename B::value_type;
 
         // use intervals and a higher-order approximate
         // type to provide a minspan for the fpr.
-        auto operator==(cipher_tag_exponential const & rhs) const
+        auto operator==(cipher_tag_fn const & rhs) const
         {
             // this should evaluate to fpr(a,rhs.a) * fpr(b,rhs.b).
             // if a,b are second-order models, and so is rhs's a and b,
@@ -222,7 +187,7 @@ namespace alex::cipher
             return a == rhs.a && b == rhs.b;
         }
 
-        auto operator!=(cipher_tag_exponential const & rhs) const
+        auto operator!=(cipher_tag_fn const & rhs) const
         {
             return !(*this == rhs);
         }
@@ -231,7 +196,7 @@ namespace alex::cipher
         {
             cipher_tag h;
             h.s = cipher_of_secret(a);
-            h.value  = std::hash("(exponential ");
+            h.value  = std::hash("(fn ");
             h.value ^= std::hash(a);
             h.value ^= std::hash(b);
             h.value ^= std::hash(")");
@@ -249,7 +214,7 @@ namespace alex::cipher
         O operator()(O out) const
         {
             *o++ = "(";
-            *o++ =     "exponential";
+            *o++ =     "fn";
             *o++ =     "(";
             *o++ =         "cipher_secret ";
             *o++ =         to_string(cipher_of_secret(a));
