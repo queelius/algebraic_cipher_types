@@ -17,7 +17,7 @@ struct tm
 
     }
   }
-  
+
   using TapeAlphabet = A;
   using InputAlphabet = I;
   using TransitionFn = T;
@@ -30,6 +30,6 @@ struct tm
   {
     Tape tape;
     TapePosition p = 0;
-  };
+  }
 };
 

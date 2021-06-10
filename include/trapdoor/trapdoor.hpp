@@ -4,7 +4,7 @@
  * function so that they may be composed.
  * 
  * For intance, if I have an x of type cipher_string that models a cipher
- * type, then hash(x).
+ * type, then hash(x) is defined.
  * 
  * Now, I can construct a set of these in various ways. One is to just do
  * the xor thing described elsewhere but of this approach only permits
@@ -48,13 +48,9 @@
 
 #pragma once
 
-#include "log_rate.hpp"
 #include <string_view>
-
-unsigned int hash(std::string_view x)
-{
-    return 0;
-}
+#include <functional>
+using std::string_view;
 
 /**
  * trapdoor<X> is a regular type.
@@ -66,7 +62,7 @@ unsigned int hash(std::string_view x)
  * 
  * Then, the partial application
  *     T(x) := \x -> make_trapdoor(s,x)
- * is of type X -> trapdoor<X> where s is the secret.
+ * is of type X -> trapdoor<X>.
  * 
  * T is one-way in two independent senses:
  * 
@@ -101,113 +97,99 @@ unsigned int hash(std::string_view x)
 
 
 
-// make this a type-erasure
 template <typename X>
 struct trapdoor
 {
     using value_type = X;
 
-    trapdoor() : {}
+    static constexpr auto VALUE_BYTE_LENGTH = sizeof(value_hash);
+    static constexpr auto VALUE_BIT_LENGTH = CHAR_BIT * VALUE_BYTE_LENGTH;
 
-    template <typename Cipher>
-    trapdoor(Cipher const & x, string_view k)
+    auto & operator=(trapdoor const & rhs)
     {
+        value_hash = rhs.value_hash;
+        key_hash = rhs.key_hash;
+    }
 
-    }       
-
-    unsigned int value_hash;
+    size_t value_hash;
 
     // the key hash is a hash of the secret key,
     // which faciliates a form of dynamic type checking.
-    unsigned int key_hash;
-
-
-private:
-    struct concept
-    {
-
-    };
-
-    template <typename Cipher>
-    struct model
-    {
-
-    };
+    size_t key_hash;
 };
 
-template <typename X>
-trapdoor<X> make_trapdoor(
+template <
+    typename X,
+    template <typename> typename H = std::hash
+>
+auto make_trapdoor(
     X const & x,
-    std::string_view k)
+    string_view k)
 {
-    return trapdoor<X>(x,k);
-}
-
-// Equality for trapdoor<X> is defined as both the secret hash and the value
-// hash being equal.
-//
-// Thus, the probability that two different trapdoors x and y are falsely
-// computed to be equal is given by
-//     P[make_trapdoor(x,s) == make_trapdoor(y,k) | x != y or s != k],
-// which may be rewritten as
-//     P[h(x) ^ h(s) == h(y) ^ h(k) && h(s) == h(k) | x != y or s != k].
-// Assuming h is cryptographic, this may be simplified to
-//     P[h(x) ^ h(s) == h(y) ^ h(k) | x != y or s != k] *
-//         P[h(k) == h(s) | s != k].
-//
-// 
-//
-//
-// which is a problematic probability to evaluate.
-//
-// We simply matters by assuming that the probability that s and k falsely
-// hash to the same value is 0.
-//
-// The probability P[trapdoor(x,k) == trapdoor(y,k) | x != y],
-// assuming a cryptographic hash function, is the probabiliity that
-// they both hash to the same value, 1 / n, where n-1 is the maximum
-// value of unsigned int. 
-//
-// The probability P[trapdoor(x,k) == trapdoor(x,k)] = 1.
-// However, we must also consider the fact that the secret keys may be
-// different but hash to the same value., P[trapdoor(x,k) == trapdoor(x,l) | k != l].
-// Thus, they are independent and the probability that they map to the
-// same value is again 1 / n. However, the probability that the secret hashes
-// of k and l map to the same hash is 1 / n also. If they map to the same
-// hash, then 
-
-template <typename X, typename Op>
-constexpr log_rate fpr_equality(trapdoor<X> const &)
-{
-    return log_rate{CHAR_BIT * sizeof(decltype(trapdoor<X>::value_hash))};
-}
-
-template <typename X, typename Op>
-constexpr log_rate fnr_equality(trapdoor<X> const &)
-{
-    return log_rate{};
+    return trapdoor<X>{x,H<std::string_view>{}(k)};
 }
 
 
+namespace std
+{
+    template <typename X>    
+    struct hash<trapdoor<X>>
+    {
+        size_t operator()(trapdoor<X> const & x)
+        {
+            return x.value_hash;
+        }
+    }
+}
+
+
+/**
+ * Given a shared secret, the random error on equality on trapdoor<X>, which is
+ * a simple one-way substitution cipher where representational equality implies
+ * equality, follows a second-order, positive Bernoulli model over Boolean
+ * values with a false positive rate
+ *     2^-bit_length(trapdoor<X>::hash_value).
+ * 
+ * Proof:
+ * 
+ * Suppose we have two objects of type X, denoted by A and B, where X is a
+ * regular type such that A == B => hash(A) == hash(B).
+ * 
+ * Suppose A == B. Then, by definition, hash(A) == hash(B) and thus
+ * trapdoor<X>{A} and trapdoor<X>{B} have the same representation where
+ * representational equality implies equality. Thus,
+ *     P[trapdoor<X>{A} == trapdoor<X>{B} | A == B] = 1.
+ * 
+ * Suppose A != B. Assume the hash function models a random hash function.
+ * Since there are 2^bit-length(trapdoor<X>::hash_value) possible bit patterns
+ * in the hashes of A and B, the probability that hash(A) and hash(B) collide is
+ *     2^-bit-length(trapdoor<X>::hash_value).
+ * Thus,
+ *     P[trapdoor<X>{A} == trapdoor<X>{B} | A != B] =
+ *         2^-bit_length(trapdoor<X>::hash_value).
+ * 
+ * Taking the two probabilities above together, we see that the true equality
+ * is true, the probability of error is 0, and when the true equality is false,
+ * the probability of error is 2^-bit_length(trapdoor<X>::hash_value).
+ */
 template <typename X>
-bool operator==(trapdoor<X> const & x, trapdoor<X> const & y)
+auto operator==(trapdoor<X> const & x, trapdoor<X> const & y)
 {
-    return x.key_hash == y.key_hash && x.value_hash == y.value_hash;
+    return bernoulli<bool,2>
+    {
+        // realized value; may be erroneous
+        x.value_hash == y.value_hash && x.key_hash == y.key_hash,
+        // if truely true, then expected error is 0
+        0.,
+        // if truely false, then expected error is 2^-k where k is bit
+        // length of hash value. (we ignore collisions on the secret.)
+        std::pow(2.,-(double)trapdoor<X>::HASH_VALUE_BIT_LENGTH)
+    };
 }
 
 template <typename X>
 bool operator!=(trapdoor<X> const & x, trapdoor<X> const & y)
 {
-    return x.key_hash != y.key_hash && x.value_hash != y.value_hash;
+    return !(x == y);
 }
 
-template <typename X, typename Y>
-bool operator==(trapdoor<X> const &, trapdoor<Y> const &)
-{
-    return false;
-}
-
-
-
-
-// key_hash(hash(k)), value_hash(hash(x) ^ key_hash) {}
