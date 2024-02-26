@@ -4,39 +4,12 @@
  * cipher<bool> models the concept of an
  * approximate cipher Boolean.
  * 
- * it does not support equality operations;
+ * We know it is a cipher of a Boolean value,
+ * 
+ * It does not support equality operations;
  * rather, a secret must be known to decode
  * to a plaintext bool to perform such queries.
  */
-
-/**
- * process;
- * 
- * specify input type X
- * specify output type Y
- * 
- * specify (cipher) representations for X (cipher X)
- * specify (cipher) representations for Y (cipher Y)
- * 
- * define function of f: X -> Y
- * 
- * for each x in X:
- *     y := f(x)
- *     [y'] := cipher(y)
- *     ...
- * 
- * 
- * can use a canonical representation of a body
- * e.g., renaming variables to some canonical form,
- * renaming function names to some canoncial form,
- * etc., and then hashing it, to quickly check that
- * two ciphers (say, a cipher of a function) model
- * the same thing. same for types. in this way,
- * we can verify that two, say, cipher bools are
- * of the same type, i.e., same ciphers for true and
- * false.
- */
-
 
 template <>
 class cipher<bool>
