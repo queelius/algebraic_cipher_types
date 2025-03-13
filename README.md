@@ -12,10 +12,13 @@ qualify as a group, the set and operation, $(G, *)$, must satisfy four
 requirements known as the group axioms:
 
 - **Closure**: For all $a,b \in G$, the result of the operation, $a*b$, is also in $G$.
+
 - **Associativity**: For all $a,b,c \in G$, $(a*b)*c = a*(b*c)$.
+
 - **Identity element**: There exists an element $e \in G$ such that, for every
 element $a \in G$, the equation $e*a = a*e = a$ holds. Such an element is
 unique, and thus one speaks of the identity element.
+
 - **Inverse element**: For each $a \in G$, there exists an element $a' \in G$
 such that $a*b=b*a=e$, where $e$ is the identity element.
 
